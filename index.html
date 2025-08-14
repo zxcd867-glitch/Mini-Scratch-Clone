@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Scratch Clone</title>
+<style>
+  body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #eee; }
+  #palette, #workspace, #stage { padding: 10px; }
+  #palette { width: 200px; background: #f0f0f0; overflow-y: auto; border-right: 2px solid #ccc; }
+  #workspace { flex: 1; background: white; position: relative; }
+  #stage { width: 300px; background: #ddd; border-left: 2px solid #ccc; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .block { padding: 5px 10px; margin: 5px 0; border-radius: 5px; color: white; cursor: grab; user-select: none; }
+  .motion { background: #4C97FF; }
+  .control { background: #FFAB19; }
+  .event { background: #FFBF00; }
+  .block.dragging { opacity: 0.5; }
+  .stack { position: absolute; }
+  canvas { background: white; border: 1px solid #ccc; }
+  button { margin-top: 10px; padding: 5px 10px; }
+</style>
+</head>
+<body>
+
+<div id="palette">
+  <h3>Blocks</h3>
+  <div class="block motion" draggable="true" data-code="move(10)">Move 10 steps</div>
+  <div class="block motion" draggable="true" data-code="turn(15)">Turn 15°</div>
+  <div class="block control" draggable="true" data-code="repeat(10)">Repeat 10</div>
+  <div class="block event" draggable="true" data-code="whenClicked()">When clicked</div>
+</div>
+
+<div id="workspace"></div>
+
+<div id="stage">
+  <canvas id="stageCanvas" width="250" height="250"></canvas>
+  <button id="runCode">Run Code</button>
+  <button id="clearWorkspace">Clear</button>
+</div>
+
+<script>
+const palette = document.getElementById('palette');
+const workspace = document.getElementById('workspace');
+const runCodeBtn = document.getElementById('runCode');
+const clearBtn = document.getElementById('clearWorkspace');
+const stageCanvas = document.getElementById('stageCanvas');
+const ctx = stageCanvas.getContext('2d');
+
+// Sprite properties
+let sprite = { x: 125, y: 125, angle: 0 };
+
+// Draw sprite
+function drawSprite() {
+  ctx.clearRect(0, 0, stageCanvas.width, stageCanvas.height);
+  ctx.save();
+  ctx.translate(sprite.x, sprite.y);
+  ctx.rotate(sprite.angle * Math.PI/180);
+  ctx.fillStyle = 'red';
+  ctx.beginPath();
+  ctx.moveTo(0, -10);
+  ctx.lineTo(10, 10);
+  ctx.lineTo(-10, 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+drawSprite();
+
+// Drag & Drop
+let draggedBlock = null;
+palette.addEventListener('dragstart', e => {
+  if (e.target.classList.contains('block')) {
+    draggedBlock = e.target.cloneNode(true);
+    draggedBlock.style.position = 'absolute';
+    draggedBlock.style.left = e.pageX - 100 + 'px';
+    draggedBlock.style.top = e.pageY - 20 + 'px';
+  }
+});
+workspace.addEventListener('dragover', e => e.preventDefault());
+workspace.addEventListener('drop', e => {
+  e.preventDefault();
+  if (draggedBlock) {
+    draggedBlock.style.left = e.offsetX + 'px';
+    draggedBlock.style.top = e.offsetY + 'px';
+    workspace.appendChild(draggedBlock);
+    draggedBlock.draggable = true;
+    draggedBlock = null;
+  }
+});
+
+// Run Code
+runCodeBtn.addEventListener('click', () => {
+  const blocks = [...workspace.querySelectorAll('.block')];
+  runBlocks(blocks);
+});
+
+clearBtn.addEventListener('click', () => {
+  workspace.innerHTML = '';
+  sprite = { x: 125, y: 125, angle: 0 };
+  drawSprite();
+});
+
+function runBlocks(blocks) {
+  blocks.forEach(block => {
+    const code = block.dataset.code;
+    try {
+      eval(code);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+  drawSprite();
+}
+
+// Block Actions
+function move(steps) {
+  sprite.x += Math.cos(sprite.angle * Math.PI/180) * steps;
+  sprite.y += Math.sin(sprite.angle * Math.PI/180) * steps;
+}
+function turn(deg) {
+  sprite.angle += deg;
+}
+function repeat(n) {
+  for (let i=0; i<n; i++) {
+    move(5);
+  }
+}
+function whenClicked() {
+  alert('Stage clicked!');
+}
+</script>
+</body>
+</html>
